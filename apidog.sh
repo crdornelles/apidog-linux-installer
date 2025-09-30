@@ -4,6 +4,18 @@ set -e
 
 ROOT=$(dirname "$(dirname "$(readlink -f $0)")")
 
+function check_dependencies() {
+    # Check for required dependencies
+    if ! command -v unzip &>/dev/null; then
+        echo "Error: unzip is required but not installed." >&2
+        echo "Please install unzip using your package manager:" >&2
+        echo "  - Debian/Ubuntu: sudo apt-get install unzip" >&2
+        echo "  - Fedora: sudo dnf install unzip" >&2
+        echo "  - Arch Linux: sudo pacman -S unzip" >&2
+        exit 1
+    fi
+}
+
 function check_fuse() {
     # Set command prefix based on whether we're root
     local cmd_prefix=""
@@ -94,8 +106,8 @@ function get_download_info() {
         file_arch="aarch64"
     fi
 
-    # Apidog download URL - using direct download from their website
-    local download_url="https://download.apidog.com/linux/Apidog.AppImage"
+    # Apidog download URL - using the correct download URL
+    local download_url="https://file-assets.apidog.com/download/Apidog-linux-latest.zip"
     local version="latest"
 
     echo "URL=$download_url"
@@ -110,21 +122,46 @@ function install_apidog() {
     local arch=$(get_arch)
     local download_info=$(get_download_info)
 
-    # Check for FUSE before proceeding with installation
+    # Check for dependencies before proceeding with installation
+    check_dependencies
     check_fuse || return 1
 
     local download_url=$(echo "$download_info" | grep "URL=" | sed 's/^URL=//')
     local version=$(echo "$download_info" | grep "VERSION=" | sed 's/^VERSION=//')
 
-    echo "Downloading Apidog AppImage..."
+    echo "Downloading Apidog..."
     if ! curl -L "$download_url" -o "$temp_file"; then
-        echo "Failed to download Apidog AppImage" >&2
+        echo "Failed to download Apidog" >&2
         rm -f "$temp_file"
         return 1
     fi
 
-    chmod +x "$temp_file"
-    mv "$temp_file" "$install_dir/apidog.appimage"
+    # Extract the ZIP file
+    echo "Extracting Apidog from ZIP..."
+    local temp_extract_dir=$(mktemp -d)
+    if ! unzip -q "$temp_file" -d "$temp_extract_dir"; then
+        echo "Failed to extract Apidog ZIP file" >&2
+        rm -f "$temp_file"
+        rm -rf "$temp_extract_dir"
+        return 1
+    fi
+
+    # Find the AppImage in the extracted files
+    local appimage_file=$(find "$temp_extract_dir" -name "*.AppImage" -type f | head -n 1)
+    if [ -z "$appimage_file" ]; then
+        echo "No AppImage found in the downloaded ZIP file" >&2
+        rm -f "$temp_file"
+        rm -rf "$temp_extract_dir"
+        return 1
+    fi
+
+    # Move the AppImage to the install directory
+    chmod +x "$appimage_file"
+    mv "$appimage_file" "$install_dir/apidog.appimage"
+    
+    # Clean up temporary files
+    rm -f "$temp_file"
+    rm -rf "$temp_extract_dir"
 
     # Ensure execution permissions persist post-move
     chmod +x "$install_dir/apidog.appimage"
