@@ -91,6 +91,15 @@ If you encounter issues with the Apidog AppImage:
 
 3. **Architecture Mismatch**: The installer verifies that the downloaded AppImage matches your system architecture.
 
+## Acknowledgments
+
+This project was inspired by and based on the excellent work done in the [cursor-linux-installer](https://github.com/watzon/cursor-linux-installer) project. We would like to thank all the contributors and maintainers of that project for creating a solid foundation that made this Apidog installer possible.
+
+Special thanks to:
+- The original cursor-linux-installer team for their innovative approach to Linux application installation
+- All contributors who helped improve the base installer scripts
+- The open-source community for their continuous support and feedback
+
 ## License
 
 This software is released under the MIT License.
